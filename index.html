@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>隨機交換禮物抽籤程式</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            text-align: center;
+        }
+        #participants, #results {
+            width: 80%;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            text-align: left;
+        }
+        #participants textarea {
+            width: 100%;
+            height: 150px;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result-item {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-bottom: 1px dashed #eee;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🎄 聖誕交換禮物抽籤</h1>
+
+    <div id="participants">
+        <h2>1. 輸入參與者名單</h2>
+        <p>請每行輸入一個名字：</p>
+        <textarea id="nameList">
+1
+2
+3
+4
+5
+6
+        </textarea>
+    </div>
+
+    <button onclick="drawNames()">開始抽籤！</button>
+    <button onclick="resetResults()">重設結果</button>
+
+    <div id="results">
+        <h2>2. 抽籤結果</h2>
+        <div id="resultOutput">
+            <p>點擊 "開始抽籤！" 按鈕進行配對。</p>
+        </div>
+    </div>
+
+    <script>
+        function shuffle(array) {
+            let currentIndex = array.length, randomIndex;
+
+            // While there remain elements to shuffle.
+            while (currentIndex != 0) {
+                // Pick a remaining element.
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+
+                // And swap it with the current element.
+                [array[currentIndex], array[randomIndex]] = [
+                    array[randomIndex], array[currentIndex]];
+            }
+
+            return array;
+        }
+
+        function drawNames() {
+            // 取得名單並去除空白行
+            const nameListText = document.getElementById('nameList').value;
+            let participants = nameListText.split('\n')
+                                            .map(name => name.trim())
+                                            .filter(name => name.length > 0);
+
+            const resultOutput = document.getElementById('resultOutput');
+            resultOutput.innerHTML = ''; // 清除舊結果
+
+            if (participants.length < 2) {
+                resultOutput.innerHTML = '<p style="color: red;">至少需要兩位參與者才能進行抽籤！</p>';
+                return;
+            }
+
+            // 複製名單，作為「收禮者」名單
+            let receivers = [...participants];
+
+            // 隨機打亂收禮者名單
+            receivers = shuffle(receivers);
+
+            // 確保沒有人抽到自己 (A -> A)
+            let maxAttempts = 100; // 避免無限迴圈
+            let attempt = 0;
+            let selfDrawExists = true;
+
+            while (selfDrawExists && attempt < maxAttempts) {
+                selfDrawExists = false;
+                for (let i = 0; i < participants.length; i++) {
+                    if (participants[i] === receivers[i]) {
+                        selfDrawExists = true;
+                        // 簡單的解決方法：與下一個收禮者交換（如果是最後一個就與第一個交換）
+                        let nextIndex = (i + 1) % participants.length;
+                        [receivers[i], receivers[nextIndex]] = [receivers[nextIndex], receivers[i]];
+                        break; // 重新檢查所有配對
+                    }
+                }
+                if (selfDrawExists) {
+                    // 如果交換後還是有人抽到自己，就直接重新打亂
+                    receivers = shuffle(receivers); 
+                }
+                attempt++;
+            }
+
+            // 顯示結果
+            if (attempt === maxAttempts) {
+                resultOutput.innerHTML = '<p style="color: orange;">無法在限定次數內找到無人抽到自己的完美配對，請重試。</p>';
+                return;
+            }
+
+            for (let i = 0; i < participants.length; i++) {
+                const giver = participants[i];
+                const receiver = receivers[i];
+
+                const resultItem = document.createElement('div');
+                resultItem.className = 'result-item';
+                // 為了保護隱私，你可以讓使用者只看自己的結果。這裡先全部顯示。
+                resultItem.innerHTML = `<strong>${giver}</strong> 將禮物送給 → <span style="color: blue; font-weight: bold;">${receiver}</span>`;
+                resultOutput.appendChild(resultItem);
+            }
+        }
+
+        function resetResults() {
+            document.getElementById('resultOutput').innerHTML = '<p>點擊 "開始抽籤！" 按鈕進行配對。</p>';
+        }
+
+        // 初始化時自動清除 textarea 左右的空白
+        document.addEventListener('DOMContentLoaded', () => {
+            const textarea = document.getElementById('nameList');
+            textarea.value = textarea.value.trim();
+        });
+
+    </script>
+
+</body>
+</html>
